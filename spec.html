@@ -1,0 +1,166 @@
+<!doctype html>
+<meta charset="utf8">
+<pre class=metadata>
+title: Comma-separated fields
+stage: _
+contributors: Daniel Ehrenberg, Yehuda Katz
+</pre>
+<emu-intro id=sec-intro>
+  <h1>Introduction</h1>
+  This proposal introduces comma-separated field declarations. See <a href="https://github.com/littledan/proposal-comma-separated-fields">the explainer</a> for motivation and status.
+</emu-intro>
+
+<emu-clause id=sec-syntax>
+  <h1>Syntax</h1>
+  <emu-grammar>
+      FieldDefinitionList[Yield, Await] :
+        FieldDefinition[?Yield, ?Await]
+        FieldDefinitionList[?Yield, ?Await] `,` FieldDefinition[?Yield, ?Await]
+
+      ClassElement[Yield, Await] :
+        MethodDefinition[?Yield, ?Await]
+        `static` MethodDefinition[?Yield, ?Await]
+        <del>FieldDefinitionList[?Yield, ?Await] `;`</del>
+        <del>`static` FieldDefinitionList[?Yield, ?Await] `;`</del>
+        <ins>FieldDefinition[?Yield, ?Await] `;`</ins>
+        <ins>`static` FieldDefinition[?Yield, ?Await] `;`</ins>
+        `;`
+  </emu-grammar>
+</emu-clause>
+
+<emu-clause id=sec-semantics>
+  <h1>Semantics</h1>
+  <emu-clause id=sec-delete>
+    <h1>Static Semantics: Early Errors</h1>
+    <emu-grammar>ClassElement : `static` <del>FieldDefinition</del><ins>FieldDefinitionList</ins> `;`</emu-grammar>
+     <ul>
+       <li>
+        It is a Syntax Error if <del>PropName of |FieldDefinition| is</del><ins>PropNames of |FieldDefinitionList| contains</ins> `"prototype"` or `"constructor"`.
+.
+       </li>
+     </ul>
+    <emu-grammar>ClassElement : <del>FieldDefinition</del><ins>FieldDefinitionList</ins> `;`</emu-grammar>
+     <ul>
+       <li>
+        It is a Syntax Error if <del>PropName of |FieldDefinition| is</del><ins>PropNames of |FieldDefinitionList| contains</ins> `"constructor"`.
+.
+       </li>
+     </ul>
+
+<emu-clause id="static-semantics-propname">
+  <h1>Static Semantics: PropNames</h1>
+
+  <emu-grammar>
+      FieldDefinitionList[Yield, Await] : FieldDefinitionList[?Yield, ?Await] `,` FieldDefinition[?Yield, ?Await]
+  </emu-grammar>
+  <emu-alg>
+    1. Let _propNames_ be PropNames of |FieldDefinitionList|.
+    1. Let _propName_ be PropName of |FieldDefinition|.
+    1. Append _propName_ to _propNames_.
+    1. Return _propNames_.
+  </emu-alg>
+
+  <emu-grammar>
+      FieldDefinitionList[Yield, Await] : FieldDefinition[?Yield, ?Await]
+  </emu-grammar>
+  <emu-alg>
+    1. Return a List containing PropName of |FieldDefinition|.
+  </emu-alg>
+</emu-clause>
+
+<emu-clause id="static-semantics-class-element-evaluation">
+   <h1>Static Semantics: ClassElementEvaluation</h1>
+   <p>With parameters _object_ and _enumerable_.</p>
+ 
+-  <emu-grammar>ClassElement : `static` <del>FieldDefinition</del><ins>FieldDefinitionList</ins> `;`</emu-grammar>
+   <emu-alg>
+    1. Return ClassFieldDefinitionEvaluation of <del>|FieldDefinition|</del><ins>|FieldDefinitionList|</ins> with parameter *true* and _object_.
+   </emu-alg>
+ 
+  <emu-grammar>ClassElement : <del>FieldDefinition</del><ins>FieldDefinitionList</ins> `;`</emu-grammar>
+   <emu-alg>
+    1. Return ClassFieldDefinitionEvaluation of <del>|FieldDefinition|</del><ins>|FieldDefinitionList|</ins> with parameter *false* and _object_.
+   </emu-alg>
+</emu-clause>
+
+<emu-clause id="runtime-semantics-class-field-definition-evaluation">
+  <h1>Runtime Semantics: ClassFieldDefinitionEvaluation</h1>
+
+   <p>With parameters _isStatic_ and _homeObject_.</p>
+ 
+   <emu-grammar>
+      FieldDefinitionList[Yield, Await] : FieldDefinitionList[?Yield, ?Await] `,` FieldDefinition[?Yield, ?Await]
+  </emu-grammar>
+  <emu-alg>
+    1. Let _fields_ be ? ClassFieldDefinitionEvaluation of |FieldDefinitionList|.
+    1. Let _field_ be ? ClassFieldDefinitionEvaluation of |FieldDefinition|.
+    1. Append _field_ to _fields_.
+    1. Return _fields_.
+  </emu-alg>
+
+  <emu-grammar>
+      FieldDefinitionList[Yield, Await] : FieldDefinition[?Yield, ?Await]
+  </emu-grammar>
+  <emu-alg>
+    1. Return a List containing ? ClassFieldDefinitionEvaluation of |FieldDefinition|.
+  </emu-alg>
+</emu-clause>
+
+<emu-clause id="sec-private-bound-names" aoid="PrivateBoundNames">
+   <h1>Static Semantics: PrivateBoundNames</h1>
+   <emu-grammar>
+      FieldDefinitionList : FieldDefinition
+  </emu-grammar>
+  <emu-alg>
+    1. Return PrivateBoundNames of |FieldDefinition|
+  </emu-alg>
+
+  <emu-grammar>
+      FieldDefinitionList :
+        FieldDefinitionList `,` FieldDefinition
+  </emu-grammar>
+  <emu-alg>
+    1. Let _names_ be PrivateBoundNames of |FieldDefinitionList|.
+    1. Let _additionalNames_ be PrivateBoundNames of |FieldDefinition|.
+    1. Append the elements of _additionalNames_ to _names_.
+    1. Return _names_.
+  </emu-alg>
+</emu-clause>
+
+
+  <emu-clause id=sec-is-static>
+     <h1>Static Semantics: IsStatic</h1>
+ 
+      <emu-grammar>ClassElement : <del>FieldDefinition</del><ins>FieldDefinitionList</ins></emu-grammar>
+       <emu-alg>
+         1. Return *false*.
+       </emu-alg>
+ 
+      <emu-grammar>ClassElement : static <del>FieldDefinition</del><ins>FieldDefinitionList</ins></emu-grammar>
+       <emu-alg>
+         1. Return *true*.
+       </emu-alg>
+  </emu-clause>
+</emu-clause>
+
+    <emu-clause id="sec-static-semantics-nonconstructorelementdefinitions">
+      <h1>Static Semantics: NonConstructorElementDefinitions</h1>
+      <emu-grammar>ClassElementList : ClassElement</emu-grammar>
+      <emu-alg>
+        1. If |ClassElement| is <emu-grammar>ClassElement : `;`</emu-grammar>, return a new empty List.
+        1. If |ClassElement| is <emu-grammar>ClassElement : <del>FieldDefinition</del><ins>FieldDefinitionList</ins> `;`</emu-grammar>, return a new empty List.
+        1. If |ClassElement| is <emu-grammar>ClassElement : `static` <del>FieldDefinition</del><ins>FieldDefinitionList</ins> `;`</emu-grammar>, return a new empty List.
+        1. If IsStatic of |ClassElement| is *false* and PropName of |ClassElement| is `"constructor"`, return a new empty List.
+        1. Return a List containing |ClassElement|.
+      </emu-alg>
+      <emu-grammar>ClassElementList : ClassElementList ClassElement</emu-grammar>
+      <emu-alg>
+        1. Let _list_ be NonConstructorElementDefinitions of |ClassElementList|.
+        1. If |ClassElement| is <emu-grammar>ClassElement : `;`</emu-grammar> , return _list_.
+        1. If |ClassElement| is <emu-grammar>ClassElement : <del>FieldDefinition</del><ins>FieldDefinitionList</ins> `;`</emu-grammar>, return a new empty List.
+        1. If |ClassElement| is <emu-grammar>ClassElement : `static` <del>FieldDefinition</del><ins>FieldDefinitionList</ins> `;`</emu-grammar>, return a new empty List.
+        1. If IsStatic of |ClassElement| is *false* and PropName of |ClassElement| is `"constructor"`, return _list_.
+        1. Append |ClassElement| to the end of _list_.
+        1. Return _list_.
+      </emu-alg>
+    </emu-clause>
